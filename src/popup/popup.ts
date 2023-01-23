@@ -29,14 +29,29 @@ export class Popup {
         rootElement.innerHTML = `
         <hgroup>
           <h2>O, Wołacz!</h2>
-          <h3>Automatyczne wołanie Mirków</h3>
+          <h3>Automatyczne wołanie Mirków i Mirabelek</h3>
         </hgroup>
         <form>
-          <label for='url'>Adres URL wpisu/komentarza</label>
-          <input type='url' id='url' name='url' placeholder='https://...' required>
+          <label for="url">Adres URL wpisu/komentarza</label>
+          <input type="url" id="url" name="url" placeholder="https://..." pattern="${env.wykop.pattern}" required>
           <small>Adres URL do wpisu lub komentarza, z którego chcesz zawołać plusujących.</small>
           
-          <button type='submit'>Wołaj!</button>
+          <button type="submit">Wołaj!</button>
+        </form>
+      `;
+      }
+      else if (this.currentTab?.url?.includes('hejto.pl')) {
+        rootElement.innerHTML = `
+        <hgroup>
+          <h2>O, Wołacz!</h2>
+          <h3>Automatyczne wołanie Tomków i Kaś</h3>
+        </hgroup>
+        <form>
+          <label for="url">Adres URL wpisu</label>
+          <input type="url" id="url" name="url" placeholder="https://..." pattern="${env.hejto.pattern}" required>
+          <small>Adres URL do wpisu lub komentarza, z którego chcesz zawołać grzmocących.</small>
+          
+          <button type="submit">Wołaj!</button>
         </form>
       `;
       }
@@ -58,46 +73,64 @@ export class Popup {
 
     form?.addEventListener('submit', (event) => {
       event.preventDefault();
+      const entryUrl: string = (form?.elements.namedItem('url') as HTMLInputElement).value;
 
-      Utils.getCurrentTab().then((tab: Tab) => {
-        this.currentTab = tab;
+      if (this.currentTab?.url?.includes(env.wykop.domain)) {
+        const entryId: string | null = Utils.extractEntryIdFromUrl(entryUrl, env.wykop.pattern);
 
-        return WykopService.getToken();
-      })
-        .then((token: string) => {
-          env.token = token;
+        if (entryId) {
+          this.callWykopVoters(entryId);
+        }
+      }
+      else if (this.currentTab?.url?.includes(env.hejto.domain)) {
+        const entryId: string | null = Utils.extractEntryIdFromUrl(entryUrl, env.hejto.pattern);
 
-          const entryUrl: string = (form?.elements.namedItem('url') as HTMLInputElement).value;
-          const entryId: string | null = Utils.extractEntryIdFromUrl(entryUrl);
-
-          Utils.showLoading(true);
-
-          if (entryId) {
-            WykopService.getEntryVotes(entryId)
-              .then((voters: WykopDTO.Author[]) => {
-                console.log(voters);
-              })
-              .catch((error) => {
-                console.error(error);
-              })
-              .finally(() => {
-                Utils.showLoading(false);
-              });
-
-            /*
-            const newEntry: WykopDTO.NewEntry = {
-              adult: false,
-              content: 'To jest testowy test.',
-              embed: null,
-              photo: null
-            } as NewEntry;
-
-            WykopService.createEntryComment(entryId, newEntry).catch();
-             */
-          }
-        })
-        .catch();
+        if (entryId) {
+          this.callHejtoVoters(entryId);
+        }
+      }
     });
+  }
+
+  private callWykopVoters(entryId: string): void {
+    Utils.showLoading(true);
+
+    WykopService.getToken()
+      .then((token: string) => {
+        env.token = token;
+
+        return WykopService.getEntryVotes(entryId);
+      })
+      .then((voters: WykopDTO.Author[]) => {
+        const chunks: WykopDTO.Author[][] = Utils.splitArrayIntoChunks(voters, env.callsPerEntry);
+        const promises: Promise<any>[] = [];
+
+        chunks.forEach((chunk: WykopDTO.Author[]) => {
+          const newEntry: WykopDTO.NewEntry = {
+            adult: false,
+            content: chunk.map((voter: WykopDTO.Author) => env.callCharacter + voter.username).join(', '),
+            embed: null,
+            photo: null
+          } as WykopDTO.NewEntry;
+
+          promises.push(new Promise(resolve => setTimeout(resolve, env.newEntryDelay)).then(() => {
+            return WykopService.createEntryComment(entryId, newEntry);
+          }));
+        });
+
+        return Promise.all(promises);
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => {
+        env.browser.tabs.sendMessage(this.currentTab?.id, { action: 'reload-page' });
+        Utils.showLoading(false);
+      });
+  }
+
+  private callHejtoVoters(entryId: string): void {
+    // ...
   }
 
 }

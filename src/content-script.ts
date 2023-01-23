@@ -10,6 +10,9 @@ env.browser.runtime.onMessage.addListener((message: any) => {
   if (message.action == 'hello') {
     console.log('Hello from:', message.who);
   }
+  else if (message.action === 'reload-page') {
+    location.reload();
+  }
 });
 
 // Send a message to other parts of the extension that are listening for a message

@@ -33,7 +33,7 @@ export class WykopService {
   }
 
   static getEntryVotes(entryId: string): Promise<WykopDTO.Author[]> {
-    return fetch(`${env.apiUrl}/entries/${entryId}/votes`, {
+    return fetch(`${env.wykop.apiUrl}/entries/${entryId}/votes`, {
       method: 'GET',
       headers: {
         'Content-type': 'application/json',
@@ -50,7 +50,7 @@ export class WykopService {
   }
 
   static createEntryComment(entryId: string, content: WykopDTO.NewEntry): Promise<any> {
-    return fetch(`${env.apiUrl}/entries/${entryId}/comments`, {
+    return fetch(`${env.wykop.apiUrl}/entries/${entryId}/comments`, {
       method: 'POST',
       headers: {
         'Content-type': 'application/json',

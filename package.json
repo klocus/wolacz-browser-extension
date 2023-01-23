@@ -1,7 +1,7 @@
 {
-    "name": "browser-extension-starter",
+    "name": "wolacz",
     "version": "1.0.0",
-    "description": "This is meant to be a starting point for creating a new browser extension.",
+    "description": "Browser extension for calling and randomizing users of Wykop.pl and Hejto.pl.",
     "main": "webpack.common.js",
     "scripts": {
         "build": "webpack --config webpack.prod.js",

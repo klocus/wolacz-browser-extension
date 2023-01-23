@@ -24,10 +24,20 @@ export class Utils {
     return tab;
   }
 
-  static extractEntryIdFromUrl(url: string): string | null {
-    const matches: RegExpMatchArray | null = url.match(/https*:\/\/wykop.pl\/wpis\/([0-9]+)(.*)/);
+  static extractEntryIdFromUrl(url: string, pattern: string): string | null {
+    const matches: RegExpMatchArray | null = url.match(new RegExp(pattern));
 
     return matches?.length ? matches[1] : null;
+  }
+
+  static splitArrayIntoChunks<T>(array: T[], chunkSize: number = 10): T[][] {
+    const chunks: any[] = [];
+
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+
+    return chunks;
   }
 
 }

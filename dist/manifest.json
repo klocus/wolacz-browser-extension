@@ -21,7 +21,8 @@
         "js/content-script.js"
       ],
       "matches": [
-        "https://wykop.pl/*"
+        "https://wykop.pl/*",
+        "https://www.hejto.pl/*"
       ],
       "run_at": "document_end"
     }
