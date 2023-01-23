@@ -1,0 +1,33 @@
+{
+  "name": "O, Wołacz!",
+  "version": "0.1.0",
+  "description": "A short description of the browser extension",
+  "manifest_version": 3,
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "O, Wołacz!"
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "js/content-script.js"
+      ],
+      "matches": [
+        "https://wykop.pl/*"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "options_ui": {
+    "open_in_tab": true,
+    "page": "options.html"
+  }
+}

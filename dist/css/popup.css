@@ -1,0 +1,36 @@
+@import "pico.min.css";
+
+:root {
+  --spacing: 1rem;
+  --block-spacing-vertical: var(--spacing);
+  --loading-spinner-opacity: 0;
+}
+
+body[aria-busy="true"]::before {
+  position: absolute;
+  top: calc(50% - 1.5em);
+  left: calc(50% - 1.5em);
+  width: 3em;
+  height: 3em;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+body[aria-busy="true"]::after {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  content: '';
+  background-color: rgba(0, 0, 0, 0.2);
+  z-index: 0;
+}
+
+main {
+  min-width: 400px;
+}
+
+main > form {
+  margin-bottom: 0;
+}
