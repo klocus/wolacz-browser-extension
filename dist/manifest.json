@@ -1,6 +1,6 @@
 {
   "name": "O, Wołacz!",
-  "version": "0.1.0",
+  "version": "2023.1.23",
   "description": "A short description of the browser extension",
   "manifest_version": 3,
   "permissions": [
