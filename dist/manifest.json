@@ -2,6 +2,12 @@
   "name": "O, Wołacz!",
   "version": "2023.1.23",
   "description": "A short description of the browser extension",
+  "icons": {
+    "16": "img/icon-16.png",
+    "32": "img/icon-32.png",
+    "48": "img/icon-48.png",
+    "128": "img/icon-128.png"
+  },
   "manifest_version": 3,
   "permissions": [
     "storage",
