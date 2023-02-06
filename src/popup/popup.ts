@@ -2,18 +2,19 @@
 // It's just a regular web page that can receive or send messages to other parts of the extension.
 // Learn more: https://developer.chrome.com/docs/extensions/mv3/user_interface/#popup
 
+import * as UtilDTO from '../_dto/util.dto';
 import * as WykopDTO from '../_dto/wykop.dto';
 import { env } from '../env';
 import type { Tab } from '../types';
 import { WykopService } from '../_service/wykop.service';
-import { Utils } from '../utils';
+import { Util } from '../util';
 
 export class Popup {
 
   private currentTab: Tab;
 
   constructor(rootSelector: string) {
-    Utils.getCurrentTab().then((tab: Tab) => {
+    Util.getCurrentTab().then((tab: Tab) => {
       this.currentTab = tab;
 
       this.render(rootSelector);
@@ -76,14 +77,14 @@ export class Popup {
       const entryUrl: string = (form?.elements.namedItem('url') as HTMLInputElement).value;
 
       if (this.currentTab?.url?.includes(env.wykop.domain)) {
-        const entryId: string | null = Utils.extractEntryIdFromUrl(entryUrl, env.wykop.pattern);
+        const matches: UtilDTO.UrlMatchGroups | undefined = Util.extractEntryIdFromUrl(entryUrl, env.wykop.pattern);
 
-        if (entryId) {
-          this.callWykopVoters(entryId);
+        if (matches?.entryId) {
+          this.callWykopVoters(matches.entryId, matches.commentId || undefined);
         }
       }
       else if (this.currentTab?.url?.includes(env.hejto.domain)) {
-        const entryId: string | null = Utils.extractEntryIdFromUrl(entryUrl, env.hejto.pattern);
+        const entryId: string | undefined = Util.extractEntryIdFromUrl(entryUrl, env.hejto.pattern)?.entryId;
 
         if (entryId) {
           this.callHejtoVoters(entryId);
@@ -92,29 +93,30 @@ export class Popup {
     });
   }
 
-  private callWykopVoters(entryId: string): void {
-    Utils.showLoading(true);
+  private callWykopVoters(entryId: string, commentId?: string): void {
+    Util.showLoading(true);
+    let wykopService: WykopService;
 
-    WykopService.getToken()
+    Util.getLocalStorageItem('token')
       .then((token: string) => {
-        env.token = token;
+        wykopService = new WykopService(token);
 
-        return WykopService.getEntryVotes(entryId);
+        return wykopService.getEntryVotes(entryId);
       })
-      .then((voters: WykopDTO.Author[]) => {
-        const chunks: WykopDTO.Author[][] = Utils.splitArrayIntoChunks(voters, env.callsPerEntry);
+      .then((voters: WykopDTO.User[]) => {
+        const chunks: WykopDTO.User[][] = Util.splitArrayIntoChunks(voters, env.callsPerEntry);
         const promises: Promise<any>[] = [];
 
-        chunks.forEach((chunk: WykopDTO.Author[]) => {
+        chunks.forEach((chunk: WykopDTO.User[]) => {
           const newEntry: WykopDTO.NewEntry = {
             adult: false,
-            content: chunk.map((voter: WykopDTO.Author) => env.callCharacter + voter.username).join(', '),
+            content: chunk.map((voter: WykopDTO.User) => env.callCharacter + voter.username).join(', '),
             embed: null,
             photo: null
           } as WykopDTO.NewEntry;
 
           promises.push(new Promise(resolve => setTimeout(resolve, env.newEntryDelay)).then(() => {
-            return WykopService.createEntryComment(entryId, newEntry);
+            return wykopService.createEntryComment(entryId, newEntry);
           }));
         });
 
@@ -125,7 +127,7 @@ export class Popup {
       })
       .finally(() => {
         env.browser.tabs.sendMessage(this.currentTab?.id, { action: 'reload-page' });
-        Utils.showLoading(false);
+        Util.showLoading(false);
       });
   }
 

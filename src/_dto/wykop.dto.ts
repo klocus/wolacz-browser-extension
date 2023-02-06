@@ -1,4 +1,4 @@
-export interface Author {
+export interface User {
   avatar: string;
   blacklist: boolean;
   color: string;
@@ -11,6 +11,17 @@ export interface Author {
   status: string;
   username: string;
   verified: boolean;
+}
+
+export interface Entry {
+  adult: boolean;
+  archive: false;
+  author: User;
+  content: string;
+  created_at: Date;
+  id: number;
+  slug: string;
+  tags: string[];
 }
 
 export interface NewEntry {
