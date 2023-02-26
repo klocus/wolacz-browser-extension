@@ -60,7 +60,7 @@ export class Popup {
       else {
         rootElement.innerHTML = `
         <h2>O, Wołacz!</h2>
-        <p>Przejdź na stronę swojego wpisu w serwisie <a href="https://wykop.pl" target="_blank">Wykop</a><!-- lub Hejto -->, aby móc zawołać użytkowników.</p>
+        <p>Przejdź na stronę swojego wpisu w serwisie Wykop<!-- lub Hejto -->, aby móc zawołać użytkowników.</p>
       `;
       }
     }

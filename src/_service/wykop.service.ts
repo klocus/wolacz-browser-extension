@@ -31,7 +31,7 @@ export class WykopService {
 
           return reject(new Error(response.json.error.message));
         })
-        .catch((error) => reject({ networkError: error.message }));
+        .catch((error) => reject(new Error(error.message)));
     });
   }
 
@@ -49,7 +49,7 @@ export class WykopService {
 
           return reject(new Error(response.json.error.message));
         })
-        .catch((error) => reject({ networkError: error.message }));
+        .catch((error) => reject(new Error(error.message)));
     });
   }
 
@@ -67,7 +67,7 @@ export class WykopService {
 
           return reject(new Error(response.json.error.message));
         })
-        .catch((error) => reject({ networkError: error.message }));
+        .catch((error) => reject(new Error(error.message)));
     });
   }
 
@@ -86,7 +86,7 @@ export class WykopService {
 
           return reject(new Error(response.json.error.message));
         })
-        .catch((error) => reject({ networkError: error.message }));
+        .catch((error) => reject(new Error(error.message)));
     });
   }
 
