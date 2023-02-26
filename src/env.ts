@@ -8,7 +8,7 @@ export const env: {
 } = {
   browser: chrome || browser, // Firefox uses the `browser` namespace, Chrome uses the `chrome` namespace
   newEntryDelay: 1000,
-  callCharacter: '$',
+  callCharacter: '@',
   callsPerEntry: 50,
   wykop: {
     domain: 'wykop.pl',
