@@ -48,12 +48,12 @@ export class Util {
               resolve(injectionResults[0].result);
             }
             else {
-              reject(new Error('Can not get the token! Are you logged in?'));
+              reject(new Error('Brak tokenu! Prawdopodobnie nie jesteś zalogowany/a.'));
             }
           });
         }
         else {
-          reject(new Error('Can not get the current tab!'));
+          reject(new Error('Nie można uzyskać informacji o bieżącej karcie!'));
         }
       })
         .catch((error) => {

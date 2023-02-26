@@ -12,6 +12,8 @@ export class Popup {
 
   private currentTab: Tab;
 
+  private wykopService!: WykopService;
+
   constructor(rootSelector: string) {
     Util.getCurrentTab().then((tab: Tab) => {
       this.currentTab = tab;
@@ -58,7 +60,7 @@ export class Popup {
       else {
         rootElement.innerHTML = `
         <h2>O, Wołacz!</h2>
-        <p>Przejdź na stronę swojego wpisu w serwisie Wykop<!-- lub Hejto -->, aby móc zawołać użytkowników.</p>
+        <p>Przejdź na stronę swojego wpisu w serwisie <a href="https://wykop.pl" target="_blank">Wykop</a><!-- lub Hejto -->, aby móc zawołać użytkowników.</p>
       `;
       }
     }
@@ -93,7 +95,60 @@ export class Popup {
     });
   }
 
+  /* ------------------------------ W Y K O P ------------------------------ */
+
   private callWykopVoters(targetEntryId: string, sourceEntryUrl: string, sourceEntryId: string, sourceCommentId?: string): void {
+    Util.showLoading(true);
+
+    Util.getLocalStorageItem('token')
+      .then((token: string) => {
+        this.wykopService = new WykopService(token);
+
+        return this.checkIfCanCallWykopVoters(targetEntryId, sourceEntryId, sourceCommentId);
+      })
+      .then((canCall: boolean) => {
+        if (canCall) {
+          return this.createWykopEntries(targetEntryId, sourceEntryUrl, sourceEntryId, sourceCommentId);
+        }
+        else {
+          return Promise.reject(new Error('Aby móc zawołać do wpisu, musisz być jego autorem.'));
+        }
+      })
+      .catch((error) => {
+        alert(error);
+      })
+      .finally(() => {
+        Util.showLoading(false);
+      });
+  }
+
+  private checkIfCanCallWykopVoters(targetEntryId: string, sourceEntryId: string, sourceCommentId?: string): Promise<boolean> {
+    let currentUserName: string;
+    let sourceEntryAuthor: string;
+    let targetEntryAuthor: string;
+
+    return this.wykopService.getCurrentUser()
+      .then((user: WykopDTO.User) => {
+        currentUserName = user.username;
+
+        return this.wykopService.getEntry(sourceEntryId, sourceCommentId);
+      })
+      .then((sourceEntry: WykopDTO.Entry) => {
+        sourceEntryAuthor = sourceEntry.author.username;
+
+        return this.wykopService.getEntry(targetEntryId);
+      })
+      .then((targetEntry: WykopDTO.Entry) => {
+        targetEntryAuthor = targetEntry.author.username;
+
+        return currentUserName === sourceEntryAuthor && currentUserName === targetEntryAuthor;
+      })
+      .catch((error) => {
+        throw error;
+      });
+  }
+
+  private createWykopEntries(targetEntryId: string, sourceEntryUrl: string, sourceEntryId: string, sourceCommentId?: string): void {
     Util.showLoading(true);
     let wykopService: WykopService;
 
@@ -122,14 +177,15 @@ export class Popup {
 
         return Promise.all(promises);
       })
-      .catch((error) => {
-        alert(error);
-      })
-      .finally(() => {
+      .then(() => {
         env.browser.tabs.sendMessage(this.currentTab?.id, { action: 'reload-page' });
-        Util.showLoading(false);
+      })
+      .catch((error) => {
+        throw error;
       });
   }
+
+  /* ------------------------------ H E J T O ------------------------------ */
 
   private callHejtoVoters(entryId: string): void {
     // ...

@@ -29,15 +29,15 @@ export class WykopService {
             return resolve(response.json.data as WykopDTO.User);
           }
 
-          return reject(response.json.error.message);
+          return reject(new Error(response.json.error.message));
         })
         .catch((error) => reject({ networkError: error.message }));
     });
   }
 
-  public getEntry(entryId: string): Promise<WykopDTO.Entry> {
+  public getEntry(entryId: string, commentId?: string): Promise<WykopDTO.Entry> {
     return new Promise((resolve, reject) => {
-      return fetch(`${env.wykop.apiUrl}/entries/${entryId}`, {
+      return fetch(`${env.wykop.apiUrl}/entries/${entryId + (commentId ? `/comments/${commentId}` : '')}`, {
         method: 'GET',
         headers: this.headers
       })
@@ -47,7 +47,7 @@ export class WykopService {
             return resolve(response.json.data as WykopDTO.Entry);
           }
 
-          return reject(response.json.error.message);
+          return reject(new Error(response.json.error.message));
         })
         .catch((error) => reject({ networkError: error.message }));
     });
@@ -65,25 +65,7 @@ export class WykopService {
             return resolve(response.json.data as WykopDTO.User[]);
           }
 
-          return reject(response.json.error.message);
-        })
-        .catch((error) => reject({ networkError: error.message }));
-    });
-  }
-
-  public getEntryComments(entryId: string): Promise<WykopDTO.Entry[]> {
-    return new Promise((resolve, reject) => {
-      fetch(`${env.wykop.apiUrl}/entries/${entryId}/comments`, {
-        method: 'GET',
-        headers: this.headers
-      })
-        .then(Util.parseFetchResponse)
-        .then((response: UtilDTO.ParsedFetchResponse) => {
-          if (response.ok) {
-            return resolve(response.json.data as WykopDTO.Entry[]);
-          }
-
-          return reject(response.json.error.message);
+          return reject(new Error(response.json.error.message));
         })
         .catch((error) => reject({ networkError: error.message }));
     });
@@ -102,7 +84,7 @@ export class WykopService {
             return resolve(response.json.data);
           }
 
-          return reject(response.json.error.message);
+          return reject(new Error(response.json.error.message));
         })
         .catch((error) => reject({ networkError: error.message }));
     });
