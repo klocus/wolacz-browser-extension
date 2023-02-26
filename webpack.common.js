@@ -10,7 +10,7 @@ module.exports = {
   // Use a string for the property if special characters are neeeded.
   entry: {
     popup: path.join(__dirname, 'src/popup/popup.ts'),
-    background: path.join(__dirname, 'src/worker/background.ts'),
+    //background: path.join(__dirname, 'src/worker/background.ts'),
     options: path.join(__dirname, 'src/options/options.ts'),
     'content-script': path.join(__dirname, 'src/content-script.ts'),
   },
