@@ -1,5 +1,7 @@
+import * as UtilDTO from '../_dto/util.dto';
 import { env } from '../env';
 import * as WykopDTO from '../_dto/wykop.dto';
+import { Util } from '../util';
 
 export class WykopService {
 
@@ -16,74 +18,94 @@ export class WykopService {
   }
 
   public getCurrentUser(): Promise<WykopDTO.User> {
-    return fetch(`${env.wykop.apiUrl}/profile`, {
-      method: 'GET',
-      headers: this.headers
-    })
-      .then((response) => response.json())
-      .then((result) => {
-        return result.data as WykopDTO.User;
+    return new Promise((resolve, reject) => {
+      return fetch(`${env.wykop.apiUrl}/profile`, {
+        method: 'GET',
+        headers: this.headers
       })
-      .catch((error) => {
-        throw error;
-      });
+        .then(Util.parseFetchResponse)
+        .then((response: UtilDTO.ParsedFetchResponse) => {
+          if (response.ok) {
+            return resolve(response.json.data as WykopDTO.User);
+          }
+
+          return reject(response.json.error.message);
+        })
+        .catch((error) => reject({ networkError: error.message }));
+    });
   }
 
   public getEntry(entryId: string): Promise<WykopDTO.Entry> {
-    return fetch(`${env.wykop.apiUrl}/entries/${entryId}`, {
-      method: 'GET',
-      headers: this.headers
-    })
-      .then((response) => response.json())
-      .then((result) => {
-        return result.data as WykopDTO.Entry;
+    return new Promise((resolve, reject) => {
+      return fetch(`${env.wykop.apiUrl}/entries/${entryId}`, {
+        method: 'GET',
+        headers: this.headers
       })
-      .catch((error) => {
-        throw error;
-      });
+        .then(Util.parseFetchResponse)
+        .then((response: UtilDTO.ParsedFetchResponse) => {
+          if (response.ok) {
+            return resolve(response.json.data as WykopDTO.Entry);
+          }
+
+          return reject(response.json.error.message);
+        })
+        .catch((error) => reject({ networkError: error.message }));
+    });
   }
 
-  public getEntryVotes(entryId: string): Promise<WykopDTO.User[]> {
-    return fetch(`${env.wykop.apiUrl}/entries/${entryId}/votes`, {
-      method: 'GET',
-      headers: this.headers
-    })
-      .then((response) => response.json())
-      .then((result) => {
-        return result.data as WykopDTO.User[];
+  public getEntryVotes(entryId: string, commentId?: string): Promise<WykopDTO.User[]> {
+    return new Promise((resolve, reject) => {
+      fetch(`${env.wykop.apiUrl}/entries/${entryId + (commentId ? `/comments/${commentId}` : '')}/votes`, {
+        method: 'GET',
+        headers: this.headers
       })
-      .catch((error) => {
-        throw error;
-      });
+        .then(Util.parseFetchResponse)
+        .then((response: UtilDTO.ParsedFetchResponse) => {
+          if (response.ok) {
+            return resolve(response.json.data as WykopDTO.User[]);
+          }
+
+          return reject(response.json.error.message);
+        })
+        .catch((error) => reject({ networkError: error.message }));
+    });
   }
 
   public getEntryComments(entryId: string): Promise<WykopDTO.Entry[]> {
-    return fetch(`${env.wykop.apiUrl}/entries/${entryId}/comments`, {
-      method: 'GET',
-      headers: this.headers
-    })
-      .then((response) => response.json())
-      .then((result) => {
-        return result.data as WykopDTO.Entry[];
+    return new Promise((resolve, reject) => {
+      fetch(`${env.wykop.apiUrl}/entries/${entryId}/comments`, {
+        method: 'GET',
+        headers: this.headers
       })
-      .catch((error) => {
-        throw error;
-      });
+        .then(Util.parseFetchResponse)
+        .then((response: UtilDTO.ParsedFetchResponse) => {
+          if (response.ok) {
+            return resolve(response.json.data as WykopDTO.Entry[]);
+          }
+
+          return reject(response.json.error.message);
+        })
+        .catch((error) => reject({ networkError: error.message }));
+    });
   }
 
   public createEntryComment(entryId: string, content: WykopDTO.NewEntry): Promise<any> {
-    return fetch(`${env.wykop.apiUrl}/entries/${entryId}/comments`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ data: content })
-    })
-      .then((response) => response.json())
-      .then((result) => {
-        return result.data;
+    return new Promise((resolve, reject) => {
+      fetch(`${env.wykop.apiUrl}/entries/${entryId}/comments`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({ data: content })
       })
-      .catch((error) => {
-        throw error;
-      });
+        .then(Util.parseFetchResponse)
+        .then((response: UtilDTO.ParsedFetchResponse) => {
+          if (response.ok) {
+            return resolve(response.json.data);
+          }
+
+          return reject(response.json.error.message);
+        })
+        .catch((error) => reject({ networkError: error.message }));
+    });
   }
 
 }

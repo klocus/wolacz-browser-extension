@@ -1,5 +1,4 @@
 // The popup page is visible when the user clicks on the extension icon.
-// It's just a regular web page that can receive or send messages to other parts of the extension.
 // Learn more: https://developer.chrome.com/docs/extensions/mv3/user_interface/#popup
 
 import * as UtilDTO from '../_dto/util.dto';
@@ -26,7 +25,7 @@ export class Popup {
     const rootElement = document.querySelector(rootSelector);
 
     if (rootElement) {
-      if (this.currentTab?.url?.includes('wykop.pl')) {
+      if (this.currentTab?.url && new RegExp(env.wykop.pattern).test(this.currentTab.url)) {
         rootElement.innerHTML = `
         <hgroup>
           <h2>O, Wołacz!</h2>
@@ -41,7 +40,7 @@ export class Popup {
         </form>
       `;
       }
-      else if (this.currentTab?.url?.includes('hejto.pl')) {
+      else if (this.currentTab?.url && new RegExp(env.hejto.pattern).test(this.currentTab.url)) {
         rootElement.innerHTML = `
         <hgroup>
           <h2>O, Wołacz!</h2>
@@ -49,17 +48,17 @@ export class Popup {
         </hgroup>
         <form>
           <label for="url">Adres URL wpisu</label>
-          <input type="url" id="url" name="url" placeholder="https://..." pattern="${env.hejto.pattern}" required>
+          <input type="url" id="url" name="url" placeholder="https://..." pattern="${env.hejto.pattern}" disabled required>
           <small>Adres URL do wpisu lub komentarza, z którego chcesz zawołać grzmocących.</small>
           
-          <button type="submit">Wołaj!</button>
+          <button type="submit" disabled>Wołaj!</button>
         </form>
       `;
       }
       else {
         rootElement.innerHTML = `
         <h2>O, Wołacz!</h2>
-        <p>Przejdź na stronę swojego wpisu w serwisie Wykop lub Hejto, aby móc zawołać użytkowników.</p>
+        <p>Przejdź na stronę swojego wpisu w serwisie Wykop<!-- lub Hejto -->, aby móc zawołać użytkowników.</p>
       `;
       }
     }
@@ -74,17 +73,18 @@ export class Popup {
 
     form?.addEventListener('submit', (event) => {
       event.preventDefault();
-      const entryUrl: string = (form?.elements.namedItem('url') as HTMLInputElement).value;
+      const sourceEntryUrl: string = (form?.elements.namedItem('url') as HTMLInputElement).value;
 
       if (this.currentTab?.url?.includes(env.wykop.domain)) {
-        const matches: UtilDTO.UrlMatchGroups | undefined = Util.extractEntryIdFromUrl(entryUrl, env.wykop.pattern);
+        const sourceMatches: UtilDTO.UrlMatchGroups | undefined = Util.extractEntryIdFromUrl(sourceEntryUrl, env.wykop.pattern);
+        const targetMatches: UtilDTO.UrlMatchGroups | undefined = Util.extractEntryIdFromUrl(this.currentTab.url, env.wykop.pattern);
 
-        if (matches?.entryId) {
-          this.callWykopVoters(matches.entryId, matches.commentId || undefined);
+        if (sourceMatches?.entryId && targetMatches?.entryId) {
+          this.callWykopVoters(targetMatches.entryId, sourceEntryUrl, sourceMatches.entryId, sourceMatches.commentId || undefined);
         }
       }
       else if (this.currentTab?.url?.includes(env.hejto.domain)) {
-        const entryId: string | undefined = Util.extractEntryIdFromUrl(entryUrl, env.hejto.pattern)?.entryId;
+        const entryId: string | undefined = Util.extractEntryIdFromUrl(sourceEntryUrl, env.hejto.pattern)?.entryId;
 
         if (entryId) {
           this.callHejtoVoters(entryId);
@@ -93,7 +93,7 @@ export class Popup {
     });
   }
 
-  private callWykopVoters(entryId: string, commentId?: string): void {
+  private callWykopVoters(targetEntryId: string, sourceEntryUrl: string, sourceEntryId: string, sourceCommentId?: string): void {
     Util.showLoading(true);
     let wykopService: WykopService;
 
@@ -101,29 +101,29 @@ export class Popup {
       .then((token: string) => {
         wykopService = new WykopService(token);
 
-        return wykopService.getEntryVotes(entryId);
+        return wykopService.getEntryVotes(sourceEntryId, sourceCommentId);
       })
       .then((voters: WykopDTO.User[]) => {
         const chunks: WykopDTO.User[][] = Util.splitArrayIntoChunks(voters, env.callsPerEntry);
         const promises: Promise<any>[] = [];
 
-        chunks.forEach((chunk: WykopDTO.User[]) => {
+        chunks.forEach((chunk: WykopDTO.User[], index: number) => {
           const newEntry: WykopDTO.NewEntry = {
             adult: false,
-            content: chunk.map((voter: WykopDTO.User) => env.callCharacter + voter.username).join(', '),
+            content: (!index ? (env.wykop.comment + sourceEntryUrl + '\n\n') : '') + chunk.map((voter: WykopDTO.User) => env.callCharacter + voter.username).join(', '),
             embed: null,
             photo: null
           } as WykopDTO.NewEntry;
 
           promises.push(new Promise(resolve => setTimeout(resolve, env.newEntryDelay)).then(() => {
-            return wykopService.createEntryComment(entryId, newEntry);
+            return wykopService.createEntryComment(targetEntryId, newEntry);
           }));
         });
 
         return Promise.all(promises);
       })
       .catch((error) => {
-        console.error(error);
+        alert(error);
       })
       .finally(() => {
         env.browser.tabs.sendMessage(this.currentTab?.id, { action: 'reload-page' });

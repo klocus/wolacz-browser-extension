@@ -1,10 +1,19 @@
-import { UrlMatchGroups } from './_dto/util.dto';
+import { ParsedFetchResponse, UrlMatchGroups } from './_dto/util.dto';
 import { env } from './env';
 import { Tab } from './types';
 
 export class Util {
 
-  static showLoading(value: boolean) {
+  static parseFetchResponse(response: Response): Promise<ParsedFetchResponse> {
+    return new Promise((resolve) => response.json()
+      .then((json) => resolve({
+        status: response.status,
+        ok: response.ok,
+        json,
+      })));
+  }
+
+  static showLoading(value: boolean): void {
     if (value) {
       document.querySelector('body')?.setAttribute('aria-busy', 'true');
     }
@@ -39,15 +48,16 @@ export class Util {
               resolve(injectionResults[0].result);
             }
             else {
-              reject();
+              reject(new Error('Can not get the token! Are you logged in?'));
             }
           });
         }
         else {
-          reject();
+          reject(new Error('Can not get the current tab!'));
         }
       })
         .catch((error) => {
+          console.log(error);
           reject(error);
         });
     });

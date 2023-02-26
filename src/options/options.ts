@@ -7,9 +7,8 @@ const app = document.querySelector('#app');
 
 if (app) {
   app.innerHTML = `
-        <h1>Options Page</h1>
-        
-        <p>Hi there nothing much to see here for now</p>
+        <h1>Opcje</h1>
+        <p>W przyszłości będzie można tutaj ustawiać jakieś opcje...</p>
     `;
 }
 
