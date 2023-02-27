@@ -161,6 +161,7 @@ export class Popup {
       .then((voters: WykopDTO.User[]) => {
         const chunks: WykopDTO.User[][] = Util.splitArrayIntoChunks(voters, env.callsPerEntry);
         const promises: Promise<any>[] = [];
+        let promisesDelay: number = 0;
 
         chunks.forEach((chunk: WykopDTO.User[], index: number) => {
           const newEntry: WykopDTO.NewEntry = {
@@ -170,9 +171,11 @@ export class Popup {
             photo: null
           } as WykopDTO.NewEntry;
 
-          promises.push(new Promise(resolve => setTimeout(resolve, env.newEntryDelay)).then(() => {
+          promises.push(new Promise(resolve => setTimeout(resolve, promisesDelay)).then(() => {
             return wykopService.createEntryComment(targetEntryId, newEntry);
           }));
+
+          promisesDelay += env.newEntryDelay;
         });
 
         return Promise.all(promises);
