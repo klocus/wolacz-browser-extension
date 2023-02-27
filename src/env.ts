@@ -3,6 +3,8 @@ export const env: {
   newEntryDelay: number,
   callCharacter: string,
   callsPerEntry: number,
+  spoilerCharacter: string,
+  useSpoiler: boolean,
   wykop: { domain: string, apiUrl: string, pattern: string, comment: string },
   hejto: { domain: string, apiUrl: string, pattern: string, comment: string }
 } = {
@@ -10,6 +12,8 @@ export const env: {
   newEntryDelay: 1000,
   callCharacter: '@',
   callsPerEntry: 50,
+  spoilerCharacter: '!',
+  useSpoiler: true,
   wykop: {
     domain: 'wykop.pl',
     apiUrl: 'https://wykop.pl/api/v3',

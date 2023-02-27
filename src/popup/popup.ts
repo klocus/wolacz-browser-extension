@@ -8,6 +8,11 @@ import type { Tab } from '../types';
 import { WykopService } from '../_service/wykop.service';
 import { Util } from '../util';
 
+enum Mode {
+  AUTOMATIC = 'AUTOMATIC',
+  MANUAL = 'MANUAL'
+}
+
 export class Popup {
 
   private currentTab: Tab;
@@ -38,6 +43,18 @@ export class Popup {
           <input type="url" id="url" name="url" placeholder="https://..." pattern="${env.wykop.pattern}" required>
           <small>Adres URL do wpisu lub komentarza, z którego chcesz zawołać plusujących.</small>
           
+          <fieldset>
+            <legend>Tryb wołania</legend>
+            <label for="automatic">
+              <input type="radio" id="automatic" name="mode" value="${Mode.AUTOMATIC}" checked>
+              Automatyczne (generuje komentarze)
+            </label>
+            <label for="manual">
+              <input type="radio" id="manual" name="mode" value="${Mode.MANUAL}">
+              Ręczne (kopiuje listę do schowka)
+            </label>
+          </fieldset>
+          
           <button type="submit">Wołaj!</button>
         </form>
       `;
@@ -59,9 +76,9 @@ export class Popup {
       }
       else {
         rootElement.innerHTML = `
-        <h2>O, Wołacz!</h2>
-        <p>Przejdź na stronę swojego wpisu w serwisie Wykop<!-- lub Hejto -->, aby móc zawołać użytkowników.</p>
-      `;
+          <h2>O, Wołacz!</h2>
+          <p>Przejdź na stronę swojego wpisu w serwisie Wykop<!-- lub Hejto -->, aby móc zawołać użytkowników.</p>
+        `;
       }
     }
   }
@@ -76,13 +93,14 @@ export class Popup {
     form?.addEventListener('submit', (event) => {
       event.preventDefault();
       const sourceEntryUrl: string = (form?.elements.namedItem('url') as HTMLInputElement).value;
+      const mode: Mode = (form?.elements.namedItem('mode') as HTMLInputElement).value as Mode;
 
       if (this.currentTab?.url?.includes(env.wykop.domain)) {
         const sourceMatches: UtilDTO.UrlMatchGroups | undefined = Util.extractEntryIdFromUrl(sourceEntryUrl, env.wykop.pattern);
         const targetMatches: UtilDTO.UrlMatchGroups | undefined = Util.extractEntryIdFromUrl(this.currentTab.url, env.wykop.pattern);
 
         if (sourceMatches?.entryId && targetMatches?.entryId) {
-          this.callWykopVoters(targetMatches.entryId, sourceEntryUrl, sourceMatches.entryId, sourceMatches.commentId || undefined);
+          this.callWykopVoters(mode, targetMatches.entryId, sourceEntryUrl, sourceMatches.entryId, sourceMatches.commentId || undefined);
         }
       }
       else if (this.currentTab?.url?.includes(env.hejto.domain)) {
@@ -97,7 +115,7 @@ export class Popup {
 
   /* ------------------------------ W Y K O P ------------------------------ */
 
-  private callWykopVoters(targetEntryId: string, sourceEntryUrl: string, sourceEntryId: string, sourceCommentId?: string): void {
+  private callWykopVoters(mode: Mode, targetEntryId: string, sourceEntryUrl: string, sourceEntryId: string, sourceCommentId?: string): void {
     Util.showLoading(true);
 
     Util.getLocalStorageItem('token')
@@ -108,11 +126,19 @@ export class Popup {
       })
       .then((canCall: boolean) => {
         if (canCall) {
-          return this.createWykopEntries(targetEntryId, sourceEntryUrl, sourceEntryId, sourceCommentId);
+          if (mode === Mode.AUTOMATIC) {
+            return this.createWykopEntries(targetEntryId, sourceEntryUrl, sourceEntryId, sourceCommentId);
+          }
+          else {
+            return this.copyWykopEntries(sourceEntryUrl, sourceEntryId, sourceCommentId);
+          }
         }
         else {
           return Promise.reject(new Error('Aby móc zawołać do wpisu, musisz być jego autorem.'));
         }
+      })
+      .then(() => {
+        alert(mode === Mode.AUTOMATIC ? 'Gotowe! Przywołano plusujących :-)' : 'Gotowe! Plusujący są w Twoim schowku :-)');
       })
       .catch((error) => {
         alert(error);
@@ -148,31 +174,27 @@ export class Popup {
       });
   }
 
-  private createWykopEntries(targetEntryId: string, sourceEntryUrl: string, sourceEntryId: string, sourceCommentId?: string): void {
-    Util.showLoading(true);
-    let wykopService: WykopService;
-
-    Util.getLocalStorageItem('token')
-      .then((token: string) => {
-        wykopService = new WykopService(token);
-
-        return wykopService.getEntryVotes(sourceEntryId, sourceCommentId);
-      })
+  private createWykopEntries(targetEntryId: string, sourceEntryUrl: string, sourceEntryId: string, sourceCommentId?: string): Promise<void> {
+    return this.wykopService.getEntryVotes(sourceEntryId, sourceCommentId)
       .then((voters: WykopDTO.User[]) => {
         const chunks: WykopDTO.User[][] = Util.splitArrayIntoChunks(voters, env.callsPerEntry);
         const promises: Promise<any>[] = [];
         let promisesDelay: number = 0;
 
         chunks.forEach((chunk: WykopDTO.User[], index: number) => {
+          let content: string = (!index ? (env.wykop.comment + sourceEntryUrl + '\n\n') : '');
+          content += env.useSpoiler ? env.spoilerCharacter : '';
+          content += chunk.map((voter: WykopDTO.User) => env.callCharacter + voter.username).join(', ');
+
           const newEntry: WykopDTO.NewEntry = {
             adult: false,
-            content: (!index ? (env.wykop.comment + sourceEntryUrl + '\n\n') : '') + chunk.map((voter: WykopDTO.User) => env.callCharacter + voter.username).join(', '),
+            content: content,
             embed: null,
             photo: null
           } as WykopDTO.NewEntry;
 
           promises.push(new Promise(resolve => setTimeout(resolve, promisesDelay)).then(() => {
-            return wykopService.createEntryComment(targetEntryId, newEntry);
+            return this.wykopService.createEntryComment(targetEntryId, newEntry);
           }));
 
           promisesDelay += env.newEntryDelay;
@@ -182,6 +204,25 @@ export class Popup {
       })
       .then(() => {
         env.browser.tabs.sendMessage(this.currentTab?.id, { action: 'reload-page' });
+      })
+      .catch((error) => {
+        throw error;
+      });
+  }
+
+  private copyWykopEntries(sourceEntryUrl: string, sourceEntryId: string, sourceCommentId?: string): Promise<void> {
+    return this.wykopService.getEntryVotes(sourceEntryId, sourceCommentId)
+      .then((voters: WykopDTO.User[]) => {
+        const chunks: WykopDTO.User[][] = Util.splitArrayIntoChunks(voters, env.callsPerEntry);
+        let textToCopy: string = env.wykop.comment + sourceEntryUrl + '\n\n';
+
+        chunks.forEach((chunk: WykopDTO.User[], index: number) => {
+          textToCopy += env.useSpoiler ? env.spoilerCharacter : '';
+          textToCopy += chunk.map((voter: WykopDTO.User) => env.callCharacter + voter.username).join(', ');
+          textToCopy += index === (chunks.length - 1) ? '' : '\n\n-----\n\n';
+        });
+
+        return navigator.clipboard.writeText(textToCopy);
       })
       .catch((error) => {
         throw error;
